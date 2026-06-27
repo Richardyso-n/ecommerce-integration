@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  estoque-service:
+    build: ./estoque-service
+    command: python estoque.py
+    ports:
+      - "5001:5001"
+
+  checkout-api:
+    build: ./checkout-api
+    command: python checkout.py
+    ports:
+      - "5000:5000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      estoque-service:
+        condition: service_started
+
+  pagamento-service:
+    build: ./pagamento-service
+    command: python pagamento.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  notificacao-service:
+    build: ./notificacao-service
+    command: python notificacao.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
